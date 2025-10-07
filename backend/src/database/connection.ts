@@ -1,6 +1,6 @@
-import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { getDatabaseConfig } from './config';
 import {
   aiConfiguration,
   conversationExamples,
@@ -10,15 +10,16 @@ import {
   whatsappAccounts,
 } from './schema';
 
-config();
+// Get database configuration
+const dbConfig = getDatabaseConfig();
 
 // Create connection pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  ssl: false, // Disable SSL for local development
+  connectionString: dbConfig.url,
+  max: dbConfig.maxConnections,
+  idleTimeoutMillis: dbConfig.idleTimeoutMs,
+  connectionTimeoutMillis: dbConfig.connectionTimeoutMs,
+  ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
 });
 
 // Test connection on startup

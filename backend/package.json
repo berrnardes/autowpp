@@ -21,7 +21,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:migrate:run": "ts-node src/database/migrate.ts",
+    "db:seed": "ts-node src/database/seeds/index.ts",
+    "db:reset": "npm run db:push && npm run db:seed"
   },
   "dependencies": {
     "@langchain/openai": "^0.6.14",

@@ -7,7 +7,7 @@
   - Set up project folder structure for both frontend and backend
   - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1_
 
-- [ ] 2. Implement database schema and migrations
+- [-] 2. Implement database schema and migrations
   - Create Drizzle schema files for all database tables
   - Implement database migration scripts for WhatsApp accounts, products, conversations, and AI configuration
   - Set up database connection and configuration management
