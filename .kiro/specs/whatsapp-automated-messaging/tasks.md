@@ -43,7 +43,7 @@
   - Write unit tests for product repository methods
   - _Requirements: 2.1, 2.2, 2.6_
 
-- [ ] 4.2 Build product image upload functionality
+- [x] 4.2 Build product image upload functionality
   - Implement file upload handling with validation
   - Create image storage service (local or cloud)
   - Add image resizing and optimization
