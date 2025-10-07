@@ -35,8 +35,8 @@
   - Write unit tests for message sending functionality
   - _Requirements: 4.4, 4.5_
 
-- [ ] 4. Create product catalog management system
-- [ ] 4.1 Implement product data models and repository
+- [-] 4. Create product catalog management system
+- [x] 4.1 Implement product data models and repository
   - Create product entity with Drizzle ORM
   - Implement product repository with CRUD operations
   - Add product validation and business logic
