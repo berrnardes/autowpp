@@ -471,4 +471,553 @@ describe('ProductService', () => {
       );
     });
   });
+
+  describe('search and filtering functionality', () => {
+    const mockProducts = [
+      {
+        id: 'uuid-1',
+        name: 'Smartphone Samsung Galaxy',
+        description: 'Smartphone Android com ótima qualidade',
+        price: '899.99',
+        currency: 'BRL',
+        images: [],
+        category: 'Eletrônicos',
+        inStock: true,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      },
+      {
+        id: 'uuid-2',
+        name: 'iPhone 15 Pro',
+        description: 'Smartphone iOS premium',
+        price: '1299.99',
+        currency: 'BRL',
+        images: [],
+        category: 'Eletrônicos',
+        inStock: false,
+        createdAt: new Date('2024-01-02'),
+        updatedAt: new Date('2024-01-02'),
+      },
+      {
+        id: 'uuid-3',
+        name: 'Camiseta Polo',
+        description: 'Camiseta de algodão premium',
+        price: '59.99',
+        currency: 'BRL',
+        images: [],
+        category: 'Roupas',
+        inStock: true,
+        createdAt: new Date('2024-01-03'),
+        updatedAt: new Date('2024-01-03'),
+      },
+    ];
+
+    describe('text search functionality', () => {
+      it('should search products by name', async () => {
+        const query: ProductQueryDto = { search: 'Samsung' };
+        const expectedProducts = [mockProducts[0]];
+
+        // Mock count query
+        const mockCountResult = { total: 1 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(1);
+      });
+
+      it('should search products by description', async () => {
+        const query: ProductQueryDto = { search: 'premium' };
+        const expectedProducts = [mockProducts[1], mockProducts[2]];
+
+        // Mock count query
+        const mockCountResult = { total: 2 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(2);
+      });
+
+      it('should search products by category', async () => {
+        const query: ProductQueryDto = { search: 'Eletrônicos' };
+        const expectedProducts = [mockProducts[0], mockProducts[1]];
+
+        // Mock count query
+        const mockCountResult = { total: 2 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(2);
+      });
+
+      it('should return empty results for non-matching search', async () => {
+        const query: ProductQueryDto = { search: 'nonexistent' };
+
+        // Mock count query
+        const mockCountResult = { total: 0 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue([]);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual([]);
+        expect(result.total).toBe(0);
+      });
+    });
+
+    describe('category filtering', () => {
+      it('should filter products by category', async () => {
+        const query: ProductQueryDto = { category: 'Eletrônicos' };
+        const expectedProducts = [mockProducts[0], mockProducts[1]];
+
+        // Mock count query
+        const mockCountResult = { total: 2 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(2);
+      });
+
+      it('should return empty results for non-existing category', async () => {
+        const query: ProductQueryDto = { category: 'Categoria Inexistente' };
+
+        // Mock count query
+        const mockCountResult = { total: 0 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue([]);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual([]);
+        expect(result.total).toBe(0);
+      });
+    });
+
+    describe('price filtering', () => {
+      it('should filter products by minimum price', async () => {
+        const query: ProductQueryDto = { minPrice: 100 };
+        const expectedProducts = [mockProducts[0], mockProducts[1]];
+
+        // Mock count query
+        const mockCountResult = { total: 2 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(2);
+      });
+
+      it('should filter products by maximum price', async () => {
+        const query: ProductQueryDto = { maxPrice: 100 };
+        const expectedProducts = [mockProducts[2]];
+
+        // Mock count query
+        const mockCountResult = { total: 1 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(1);
+      });
+
+      it('should filter products by price range', async () => {
+        const query: ProductQueryDto = { minPrice: 50, maxPrice: 1000 };
+        const expectedProducts = [mockProducts[0], mockProducts[2]];
+
+        // Mock count query
+        const mockCountResult = { total: 2 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(2);
+      });
+    });
+
+    describe('stock filtering', () => {
+      it('should filter products by in stock status', async () => {
+        const query: ProductQueryDto = { inStock: true };
+        const expectedProducts = [mockProducts[0], mockProducts[2]];
+
+        // Mock count query
+        const mockCountResult = { total: 2 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(2);
+      });
+
+      it('should filter products by out of stock status', async () => {
+        const query: ProductQueryDto = { inStock: false };
+        const expectedProducts = [mockProducts[1]];
+
+        // Mock count query
+        const mockCountResult = { total: 1 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(1);
+      });
+    });
+
+    describe('pagination functionality', () => {
+      it('should paginate results correctly', async () => {
+        const query: ProductQueryDto = { page: 1, limit: 2 };
+        const expectedProducts = [mockProducts[0], mockProducts[1]];
+
+        // Mock count query
+        const mockCountResult = { total: 3 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(3);
+        expect(result.page).toBe(1);
+        expect(result.limit).toBe(2);
+        expect(result.totalPages).toBe(2);
+      });
+
+      it('should handle second page correctly', async () => {
+        const query: ProductQueryDto = { page: 2, limit: 2 };
+        const expectedProducts = [mockProducts[2]];
+
+        // Mock count query
+        const mockCountResult = { total: 3 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(3);
+        expect(result.page).toBe(2);
+        expect(result.limit).toBe(2);
+        expect(result.totalPages).toBe(2);
+      });
+
+      it('should return empty results for page beyond available data', async () => {
+        const query: ProductQueryDto = { page: 5, limit: 10 };
+
+        // Mock count query
+        const mockCountResult = { total: 3 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue([]);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual([]);
+        expect(result.total).toBe(3);
+        expect(result.page).toBe(5);
+        expect(result.limit).toBe(10);
+        expect(result.totalPages).toBe(1);
+      });
+    });
+
+    describe('combined filtering', () => {
+      it('should apply multiple filters simultaneously', async () => {
+        const query: ProductQueryDto = {
+          search: 'smartphone',
+          category: 'Eletrônicos',
+          minPrice: 500,
+          maxPrice: 1000,
+          inStock: true,
+          page: 1,
+          limit: 10,
+        };
+        const expectedProducts = [mockProducts[0]];
+
+        // Mock count query
+        const mockCountResult = { total: 1 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+        expect(result.total).toBe(1);
+        expect(result.page).toBe(1);
+        expect(result.limit).toBe(10);
+        expect(result.totalPages).toBe(1);
+      });
+
+      it('should return empty results when no products match all filters', async () => {
+        const query: ProductQueryDto = {
+          search: 'smartphone',
+          category: 'Roupas', // Conflicting with search term
+          inStock: true,
+        };
+
+        // Mock count query
+        const mockCountResult = { total: 0 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue([]);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual([]);
+        expect(result.total).toBe(0);
+      });
+    });
+
+    describe('sorting functionality', () => {
+      it('should sort products by name ascending', async () => {
+        const query: ProductQueryDto = { sortBy: 'name', sortOrder: 'asc' };
+        const expectedProducts = [...mockProducts].sort((a, b) => a.name.localeCompare(b.name));
+
+        // Mock count query
+        const mockCountResult = { total: 3 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+      });
+
+      it('should sort products by price descending', async () => {
+        const query: ProductQueryDto = { sortBy: 'price', sortOrder: 'desc' };
+        const expectedProducts = [...mockProducts].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+
+        // Mock count query
+        const mockCountResult = { total: 3 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+      });
+
+      it('should use default sorting when not specified', async () => {
+        const query: ProductQueryDto = {};
+        const expectedProducts = [...mockProducts].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        // Mock count query
+        const mockCountResult = { total: 3 };
+        const mockCountQueryBuilder = {
+          ...mockQueryBuilder,
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockResolvedValue([mockCountResult]),
+        };
+
+        // Mock products query
+        mockQueryBuilder.offset.mockResolvedValue(expectedProducts);
+
+        databaseService.db.select
+          .mockReturnValueOnce(mockCountQueryBuilder)
+          .mockReturnValueOnce(mockQueryBuilder);
+
+        const result = await service.findAll(query);
+
+        expect(result.products).toEqual(expectedProducts);
+      });
+    });
+  });
 });

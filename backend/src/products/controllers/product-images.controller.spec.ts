@@ -51,8 +51,8 @@ describe('ProductImagesController', () => {
     const mockImageStorageService = {
       uploadImage: jest.fn(),
       uploadMultipleImages: jest.fn(),
-      deleteImage: jest.fn(),
-      deleteMultipleImages: jest.fn(),
+      deleteImage: jest.fn().mockResolvedValue(undefined),
+      deleteMultipleImages: jest.fn().mockResolvedValue(undefined),
       extractFilenameFromUrl: jest.fn(),
     };
 
@@ -196,4 +196,8 @@ describe('ProductImagesController', () => {
       expect(result.product.images).toHaveLength(0);
       expect(imageStorageService.deleteMultipleImages).toHaveBeenCalledWith([
         'img1.jpg',
-      
+        'img2.jpg'
+      ]);
+    });
+  });
+});
