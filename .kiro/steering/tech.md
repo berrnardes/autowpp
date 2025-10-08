@@ -16,6 +16,8 @@
 - **Forms**: React Hook Form with Zod validation
 - **Icons**: Lucide React
 - **Notifications**: Sonner for toast notifications
+- **API Client**: Axios for HTTP requests
+- **State Management**: React Query (TanStack Query) for server state management
 
 ## Database
 - **ORM**: Drizzle with PostgreSQL dialect
@@ -61,6 +63,9 @@ npm run dev               # Start dev server with Turbopack
 npm run build             # Production build with Turbopack
 npm run start             # Start production server
 npm run lint              # ESLint
+
+# Dependencies
+npm install @tanstack/react-query axios  # Install React Query and Axios
 ```
 
 ## Environment Configuration

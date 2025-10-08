@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { WhatsAppCredentials } from "@/types/api"
+// import type { WhatsAppCredentials } from "@/types/api"
 import { useConnectWhatsApp, useTestWhatsAppConnection } from "@/hooks/use-whatsapp"
 import { Eye, EyeOff, TestTube, Loader2, Phone } from "lucide-react"
 
