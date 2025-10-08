@@ -3,6 +3,7 @@ import { ConversationGoalType } from '../../database/schema';
 export interface IncomingMessage {
   content: string;
   customerPhone: string;
+  messageId?: string;
   timestamp?: Date;
   metadata?: Record<string, any>;
 }
@@ -16,6 +17,7 @@ export interface AIResponse {
 
 export interface ConversationContext {
   customerPhone: string;
+  conversationId?: string;
   conversationHistory: MessageHistory[];
   products: ProductInfo[];
   conversationGoal: ConversationGoalType;

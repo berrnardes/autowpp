@@ -7,9 +7,12 @@ import { ConversationContextService } from './services/conversation-context.serv
 import { ConversationGoalService } from './services/conversation-goal.service';
 import { ConversationTrainingService } from './services/conversation-training.service';
 import { AIProductIntegrationService } from './services/ai-product-integration.service';
+import { ConfidenceScoringService } from './services/confidence-scoring.service';
+import { EscalationService } from './services/escalation.service';
 import { ConversationGoalController } from './controllers/conversation-goal.controller';
 import { ConversationTrainingController } from './controllers/conversation-training.controller';
 import { AIProductController } from './controllers/ai-product.controller';
+import { EscalationController } from './controllers/escalation.controller';
 
 @Module({
   imports: [
@@ -20,21 +23,26 @@ import { AIProductController } from './controllers/ai-product.controller';
   controllers: [
     ConversationGoalController,
     ConversationTrainingController,
-    AIProductController
+    AIProductController,
+    EscalationController
   ],
   providers: [
     AIService,
     ConversationContextService,
     ConversationGoalService,
     ConversationTrainingService,
-    AIProductIntegrationService
+    AIProductIntegrationService,
+    ConfidenceScoringService,
+    EscalationService
   ],
   exports: [
     AIService,
     ConversationContextService,
     ConversationGoalService,
     ConversationTrainingService,
-    AIProductIntegrationService
+    AIProductIntegrationService,
+    ConfidenceScoringService,
+    EscalationService
   ],
 })
 export class AiModule {}

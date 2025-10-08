@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { AIService } from './ai.service';
 import { ConversationGoalService } from './conversation-goal.service';
 import { AIProductIntegrationService } from './ai-product-integration.service';
+import { ConfidenceScoringService } from './confidence-scoring.service';
+import { EscalationService } from './escalation.service';
 import { 
   IncomingMessage, 
   ConversationContext, 
@@ -97,6 +99,24 @@ describe('AIService', () => {
       generateProductSummaryForGoal: jest.fn().mockReturnValue('Resumo dos produtos')
     };
 
+    const mockConfidenceScoringService = {
+      calculateConfidence: jest.fn().mockReturnValue({
+        score: 0.8,
+        factors: {},
+        reasoning: [],
+        shouldEscalate: false,
+        escalationReasons: []
+      })
+    };
+
+    const mockEscalationService = {
+      evaluateEscalation: jest.fn().mockResolvedValue({
+        shouldEscalate: false,
+        escalationEvents: [],
+        manualReviewRequired: false
+      })
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AIService,
@@ -111,6 +131,14 @@ describe('AIService', () => {
         {
           provide: AIProductIntegrationService,
           useValue: mockAIProductIntegrationServiceMethods
+        },
+        {
+          provide: ConfidenceScoringService,
+          useValue: mockConfidenceScoringService
+        },
+        {
+          provide: EscalationService,
+          useValue: mockEscalationService
         }
       ],
     }).compile();
