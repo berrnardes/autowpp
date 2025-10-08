@@ -1,8 +1,8 @@
 import { IsOptional, IsEnum, IsString, IsDateString, IsNumber, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ConversationStatus, ConversationStatusType } from '../../database/schema';
-
+import { ConversationStatus,  } from '../../database/schema';
+import type { ConversationStatusType } from '../../database/schema';
 export class ConversationQueryDto {
   @ApiPropertyOptional({
     description: 'Status da conversa para filtrar',

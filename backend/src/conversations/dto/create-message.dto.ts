@@ -1,6 +1,7 @@
 import { IsString, IsEnum, IsOptional, IsBoolean, IsNumber, Min, Max, IsObject } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { MessageType, MessageTypeType } from '../../database/schema';
+import { MessageType } from '../../database/schema';
+import type{ MessageTypeType } from '../../database/schema';
 
 export class CreateMessageDto {
   @ApiProperty({

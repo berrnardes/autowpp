@@ -1,6 +1,8 @@
 import { IsString, IsOptional, IsEnum, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ConversationStatus, ConversationStatusType } from '../../database/schema';
+import { ConversationStatus } from '../../database/schema';
+import type { ConversationStatusType } from '../../database/schema';
+
 
 export class UpdateConversationDto {
   @ApiPropertyOptional({

@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { eq, desc, and, like, count } from 'drizzle-orm';
+import { eq, desc, and, like, count, isNotNull, SQL } from 'drizzle-orm';
 import { db } from '../../database/connection';
 import { conversationExamples, ConversationExample, NewConversationExample } from '../../database/schema';
 import { TrainingResult } from '../interfaces/ai.interface';
@@ -38,7 +38,7 @@ export interface ProcessedExample {
   messageLength: number;
   responseLength: number;
   keywords: string[];
-  createdAt: Date;
+  createdAt: Date | null;
 }
 
 @Injectable()
@@ -157,7 +157,7 @@ export class ConversationTrainingService {
     try {
       const { category, search, limit = 50, offset = 0 } = query;
 
-      let whereConditions = [];
+      let whereConditions: SQL<unknown>[] = [];
 
       if (category) {
         whereConditions.push(eq(conversationExamples.category, category));
@@ -170,8 +170,8 @@ export class ConversationTrainingService {
         );
       }
 
-      const whereClause = whereConditions.length > 0 
-        ? and(...whereConditions) 
+      const whereClause = whereConditions.length > 0
+        ? and(...whereConditions)
         : undefined;
 
       // Get total count
@@ -217,7 +217,7 @@ export class ConversationTrainingService {
     try {
       const result = await db.selectDistinct({ category: conversationExamples.category })
         .from(conversationExamples)
-        .where(eq(conversationExamples.category, conversationExamples.category)); // Only non-null categories
+        .where(isNotNull(conversationExamples.category)); // Only non-null categories
 
       return result
         .map(row => row.category)
@@ -235,7 +235,7 @@ export class ConversationTrainingService {
       this.logger.log('Processing training data for AI model');
 
       const { examples, total } = await this.getExamples({ limit: 1000 });
-      
+
       const processedExamples: ProcessedExample[] = examples.map(example => ({
         id: example.id,
         customerMessage: example.customerMessage,
@@ -248,7 +248,7 @@ export class ConversationTrainingService {
       }));
 
       const categories = await this.getCategories();
-      const validExamples = processedExamples.filter(example => 
+      const validExamples = processedExamples.filter(example =>
         example.messageLength > 5 && example.responseLength > 10
       ).length;
 
@@ -320,9 +320,9 @@ export class ConversationTrainingService {
       }
 
       const { examples } = await this.getExamples(query);
-      
+
       // Filter for high-quality examples for few-shot learning
-      const qualityExamples = examples.filter(example => 
+      const qualityExamples = examples.filter(example =>
         example.customerMessage.length > 10 &&
         example.desiredResponse.length > 20 &&
         !example.desiredResponse.toLowerCase().includes('não sei') &&

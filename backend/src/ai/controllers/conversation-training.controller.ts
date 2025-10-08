@@ -254,7 +254,11 @@ export class ConversationTrainingController {
             });
 
             const recentExamples = processedExamples
-                .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                .sort((a, b) => {
+                    const aTime = a.createdAt?.getTime() || 0;
+                    const bTime = b.createdAt?.getTime() || 0;
+                    return bTime - aTime;
+                })
                 .slice(0, 5)
                 .map(example => ({
                     id: example.id,

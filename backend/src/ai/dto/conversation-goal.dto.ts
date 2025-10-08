@@ -1,6 +1,7 @@
 import { IsEnum, IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ConversationGoalType, ConversationGoal } from '../../database/schema';
+import { ConversationGoal } from '../../database/schema';
+import type { ConversationGoalType } from '../../database/schema';
 
 export class ResponseStyleDto {
   @IsString()

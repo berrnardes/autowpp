@@ -1,9 +1,11 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import { db, pool } from './connection';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { seedInitialAIConfiguration } from './seeds/initial-ai-config.seed';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
+import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
@@ -54,8 +56,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   async runMigrations(): Promise<void> {
     try {
       this.logger.log('🔄 Running database migrations...');
-      await migrate(this.database, { 
-        migrationsFolder: './src/database/migrations' 
+      await migrate(this.database, {
+        migrationsFolder: './src/database/migrations'
       });
       this.logger.log('✅ Database migrations completed');
     } catch (error) {
@@ -82,7 +84,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
    * Execute a transaction
    */
   async executeTransaction<T>(
-    callback: (tx: ReturnType<typeof drizzle>) => Promise<T>
+    callback: (tx: PgTransaction<NodePgQueryResultHKT, Record<string, unknown>>) => Promise<T>
   ): Promise<T> {
     return await this.database.transaction(callback);
   }

@@ -1,3 +1,7 @@
+import {config} from "dotenv"
+
+config()
+
 export interface DatabaseConfig {
   url: string;
   maxConnections: number;
