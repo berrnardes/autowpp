@@ -1,80 +1,74 @@
 # Project Structure
 
-## Monorepo Organization
+## Root Organization
 ```
 ├── backend/          # NestJS API server
 ├── frontend/         # Next.js web application
-├── .kiro/           # Kiro IDE configuration and specs
-└── .git/            # Git repository
+└── node_modules/     # Shared dependencies
 ```
 
 ## Backend Structure (`backend/`)
+Follows NestJS modular architecture with feature-based organization:
+
 ```
 src/
-├── ai/                    # AI service and LangChain integration
-├── config/               # Configuration management
-├── conversations/        # Conversation management module
-├── database/            # Database configuration and schema
-│   ├── migrations/      # Drizzle migrations
-│   ├── seeds/          # Database seeding scripts
-│   └── schema.ts       # Drizzle schema definitions
-├── products/           # Product catalog module
-├── whatsapp/          # WhatsApp Business API integration
-│   ├── controllers/   # Webhook and API controllers
-│   ├── dto/          # Data transfer objects
-│   ├── exceptions/   # Custom exceptions
-│   ├── interfaces/   # TypeScript interfaces
-│   └── services/     # WhatsApp and encryption services
-├── app.module.ts     # Root application module
-└── main.ts          # Application entry point
+├── ai/                    # AI and conversation training
+│   ├── controllers/       # AI-related endpoints
+│   ├── services/          # AI logic and integrations
+│   ├── dto/              # Data transfer objects
+│   └── interfaces/       # TypeScript interfaces
+├── conversations/         # Conversation management
+├── products/             # Product catalog management
+├── whatsapp/             # WhatsApp Business API integration
+├── database/             # Database configuration and migrations
+│   ├── migrations/       # Drizzle migrations
+│   ├── seeds/           # Database seed files
+│   └── schema.ts        # Database schema definitions
+└── config/              # Application configuration
 ```
+
+### Key Backend Patterns
+- **Modules**: Each feature has its own module (ai.module.ts, products.module.ts, etc.)
+- **Controllers**: Handle HTTP requests and responses
+- **Services**: Contain business logic and external integrations
+- **DTOs**: Define request/response data structures with validation
+- **Database**: Drizzle ORM with PostgreSQL, schema-first approach
 
 ## Frontend Structure (`frontend/`)
+Follows Next.js App Router conventions:
+
 ```
 src/
-├── app/                  # Next.js App Router
-│   ├── globals.css      # Global styles
-│   ├── layout.tsx       # Root layout
-│   └── page.tsx         # Home page
-├── components/          # React components
-│   ├── ai-training/    # AI configuration components
-│   ├── dashboard/      # Dashboard components
-│   ├── products/       # Product management components
-│   ├── ui/            # shadcn/ui components
-│   └── whatsapp/      # WhatsApp connection components
-├── hooks/              # Custom React hooks
-└── lib/               # Utility functions and API client
-    ├── api.ts         # API client configuration
-    └── utils.ts       # Utility functions
+├── app/                  # Next.js App Router pages
+│   ├── produtos/         # Products management page
+│   └── whatsapp/         # WhatsApp configuration page
+├── components/           # Reusable UI components
+│   ├── ui/              # Base UI components (shadcn/ui)
+│   ├── dashboard/       # Dashboard-specific components
+│   ├── products/        # Product management components
+│   └── whatsapp/        # WhatsApp integration components
+├── hooks/               # Custom React hooks
+├── lib/                 # Utility functions and configurations
+│   ├── api.ts           # API client and methods
+│   └── utils.ts         # Helper utilities
+└── types/               # TypeScript type definitions
 ```
 
-## Module Organization Patterns
+### Key Frontend Patterns
+- **Components**: Organized by feature with index.ts exports
+- **Hooks**: Custom hooks for data fetching and state management
+- **API Client**: Centralized HTTP client with typed methods
+- **Types**: Shared TypeScript interfaces matching backend DTOs
 
-### Backend Modules
-- Each feature area is organized as a NestJS module
-- Services contain business logic
-- Controllers handle HTTP requests and webhooks
-- DTOs define data validation schemas
-- Interfaces define TypeScript contracts
+## Naming Conventions
+- **Files**: kebab-case for all files (`product-list.tsx`, `ai-service.ts`)
+- **Components**: PascalCase for React components
+- **Services**: camelCase with descriptive names
+- **Database**: snake_case for table and column names
+- **APIs**: RESTful endpoints with plural nouns (`/products`, `/conversations`)
 
-### Frontend Components
-- Feature-based component organization
-- Shared UI components in `components/ui/`
-- Custom hooks for reusable logic
-- API client centralized in `lib/api.ts`
-
-## Database Schema Organization
-- Single schema file with all table definitions
-- Relations defined using Drizzle relations
-- Type exports for TypeScript integration
-- Enums and constants for type safety
-
-## Configuration Management
-- Environment-specific configuration in `.env` files
-- Database configuration centralized in `database/config.ts`
-- Frontend API configuration in `lib/api.ts`
-
-## Testing Structure
-- Unit tests co-located with source files (`.spec.ts`)
-- E2E tests in dedicated `test/` directory
-- Test configuration in `jest` and `jest-e2e.json`
+## Module Dependencies
+- Backend modules are loosely coupled with dependency injection
+- Frontend components use composition over inheritance
+- Shared types between frontend/backend for API contracts
+- Database schema serves as single source of truth for data models

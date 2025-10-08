@@ -1,74 +1,66 @@
 # Technology Stack
 
-## Backend
+## Architecture
+Full-stack TypeScript application with separate backend and frontend services.
+
+## Backend (NestJS)
 - **Framework**: NestJS with TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
 - **AI/ML**: LangChain with OpenAI integration
-- **Authentication**: WhatsApp Business API with encrypted credential storage
-- **Encryption**: crypto-js for sensitive data
-- **Validation**: class-validator and class-transformer
-- **Testing**: Jest for unit and e2e tests
+- **File Storage**: Google Cloud Storage
+- **Authentication**: bcrypt for password hashing
+- **API Documentation**: Swagger/OpenAPI
+- **Image Processing**: Sharp
+- **Validation**: class-validator, class-transformer
 
-## Frontend
-- **Framework**: Next.js 15 with React 19
-- **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui with Radix UI primitives
+## Frontend (Next.js)
+- **Framework**: Next.js 15 with App Router
+- **UI Library**: Radix UI components with Tailwind CSS
+- **State Management**: TanStack Query (React Query)
 - **Forms**: React Hook Form with Zod validation
-- **Icons**: Lucide React
-- **Notifications**: Sonner for toast notifications
-- **API Client**: Axios for HTTP requests
-- **State Management**: React Query (TanStack Query) for server state management
-
-## Database
-- **ORM**: Drizzle with PostgreSQL dialect
-- **Migrations**: Drizzle Kit for schema management
-- **Seeding**: Custom seed scripts for initial data
+- **HTTP Client**: Axios
+- **Styling**: Tailwind CSS with custom animations
 
 ## Development Tools
-- **Linting**: ESLint with TypeScript support
-- **Formatting**: Prettier
-- **Build**: Turbopack for Next.js, standard NestJS build
+- **Language**: TypeScript throughout
+- **Linting**: ESLint with Prettier
+- **Testing**: Jest for unit tests, Supertest for e2e
+- **Database Migrations**: Drizzle Kit
+- **Build Tool**: Turbopack (Next.js)
 
 ## Common Commands
 
-### Backend Development
+### Backend
 ```bash
 # Development
-npm run start:dev          # Start with watch mode
-npm run start:debug        # Start with debug mode
+npm run start:dev          # Start with hot reload
+npm run build             # Build for production
+npm run start:prod        # Start production build
 
 # Database
-npm run db:generate        # Generate migrations
-npm run db:migrate         # Run migrations
-npm run db:push           # Push schema changes
-npm run db:studio         # Open Drizzle Studio
-npm run db:seed           # Run seed scripts
-npm run db:reset          # Reset and seed database
+npm run db:generate       # Generate migrations
+npm run db:migrate        # Run migrations
+npm run db:push          # Push schema changes
+npm run db:studio        # Open Drizzle Studio
+npm run db:seed          # Seed database
+npm run db:reset         # Reset and seed database
 
 # Testing
-npm run test              # Unit tests
-npm run test:watch        # Watch mode
-npm run test:e2e          # End-to-end tests
-npm run test:cov          # Coverage report
-
-# Code Quality
-npm run lint              # ESLint
-npm run format            # Prettier
+npm run test             # Unit tests
+npm run test:e2e         # End-to-end tests
+npm run test:cov         # Test coverage
 ```
 
-### Frontend Development
+### Frontend
 ```bash
 # Development
-npm run dev               # Start dev server with Turbopack
-npm run build             # Production build with Turbopack
-npm run start             # Start production server
-npm run lint              # ESLint
-
-# Dependencies
-npm install @tanstack/react-query axios  # Install React Query and Axios
+npm run dev              # Start development server with Turbopack
+npm run build            # Build for production
+npm run start            # Start production server
+npm run lint             # Run ESLint
 ```
 
-## Environment Configuration
-- Backend uses `.env` for database, WhatsApp API, OpenAI, and encryption keys
-- Frontend uses `NEXT_PUBLIC_` prefixed variables for client-side config
-- All sensitive credentials are encrypted before database storage
+## Environment Setup
+- Backend requires `.env` file with database and API credentials
+- Frontend requires `.env.local` with API URL configuration
+- Both services run independently (backend: 3001, frontend: 3000)
