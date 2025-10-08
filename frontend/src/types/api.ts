@@ -29,6 +29,8 @@ export interface ConversationFilters {
   maxConfidence?: number
   search?: string
   customerPhone?: string
+  page?: number
+  limit?: number
 }
 
 // Conversation management types
@@ -67,19 +69,28 @@ export interface ConversationAnalytics {
   escalatedConversations: number
   averageResponseTime: number
   aiAccuracy: number
+  resolutionRate: number
+  escalationRate: number
   customerSatisfaction?: number
-  responseTimeDistribution: {
+  peakHours: string[]
+  commonTopics: string[]
+  aiPerformance: {
+    accuracy: number
+    responseTime: number
+    escalationRate: number
+  }
+  responseTimeDistribution?: {
     under5s: number
     under30s: number
     under1m: number
     over1m: number
   }
-  confidenceDistribution: {
+  confidenceDistribution?: {
     high: number // > 0.8
     medium: number // 0.5 - 0.8
     low: number // < 0.5
   }
-  dailyStats: {
+  dailyStats?: {
     date: string
     conversations: number
     messages: number
@@ -158,6 +169,8 @@ export interface ProductFilters {
   inStock?: boolean
   minPrice?: number
   maxPrice?: number
+  page?: number
+  limit?: number
 }
 
 // AI Training types

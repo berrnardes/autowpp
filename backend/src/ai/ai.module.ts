@@ -13,6 +13,7 @@ import { ConversationGoalController } from './controllers/conversation-goal.cont
 import { ConversationTrainingController } from './controllers/conversation-training.controller';
 import { AIProductController } from './controllers/ai-product.controller';
 import { EscalationController } from './controllers/escalation.controller';
+import { AIConfigurationController } from './controllers/ai-configuration.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { EscalationController } from './controllers/escalation.controller';
     ConversationGoalController,
     ConversationTrainingController,
     AIProductController,
-    EscalationController
+    EscalationController,
+    AIConfigurationController
   ],
   providers: [
     AIService,

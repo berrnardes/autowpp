@@ -11,38 +11,33 @@ export class ProductQueryDto {
   category?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Type(() => Number)
   minPrice?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Type(() => Number)
   maxPrice?: number;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value === 'true';
-    }
-    return value;
-  })
   inStock?: boolean;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
-  @Type(() => Number)
   page?: number = 1;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(100)
-  @Type(() => Number)
   limit?: number = 20;
 
   @IsOptional()

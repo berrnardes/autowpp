@@ -130,22 +130,22 @@
   - Add training progress and model status display
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 6.1, 6.2, 6.6, 6.7, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-- [ ] 7.5 Create conversation monitoring and review interface
+- [x] 7.5 Create conversation monitoring and review interface
   - Build conversation history viewer with search
   - Implement flagged conversation review interface
   - Add manual takeover and response override capabilities
   - Create conversation analytics and performance metrics
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 8. Implement API endpoints and integrate frontend with backend
-- [ ] 8.1 Create REST API endpoints for all services
+- [x] 8. Implement API endpoints and integrate frontend with backend
+- [x] 8.1 Create REST API endpoints for all services
   - Build WhatsApp management API endpoints
   - Create product catalog API with CRUD operations
   - Implement AI configuration and training API endpoints
   - Add conversation management and monitoring APIs
   - _Requirements: All requirements - API layer_
 
-- [ ] 8.2 Integrate frontend with backend APIs
+- [x] 8.2 Integrate frontend with backend APIs
   - Implement API client with error handling and retry logic
   - Connect all frontend components to backend services
   - Add loading states and user feedback for all operations

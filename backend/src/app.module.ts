@@ -8,6 +8,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { ProductsModule } from './products/products.module';
 import { AiModule } from './ai/ai.module';
 import { ConversationsModule } from './conversations/conversations.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ConversationsModule } from './conversations/conversations.module';
     ProductsModule,
     AiModule,
     ConversationsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

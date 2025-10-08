@@ -26,6 +26,33 @@ export function useConversation(id: string) {
   })
 }
 
+export function useConversationByPhone(phoneNumber: string) {
+  return useQuery({
+    queryKey: ['conversation-by-phone', phoneNumber],
+    queryFn: () => apiClient.getConversationByPhone(phoneNumber),
+    enabled: !!phoneNumber,
+    staleTime: 30000, // 30 seconds
+  })
+}
+
+export function useConversationsNeedingAttention() {
+  return useQuery({
+    queryKey: ['conversations-needing-attention'],
+    queryFn: () => apiClient.getConversationsNeedingAttention(),
+    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 10000, // Consider data stale after 10 seconds
+  })
+}
+
+export function useConversationHistory(conversationId: string, limit?: number) {
+  return useQuery({
+    queryKey: ['conversation-history', conversationId, limit],
+    queryFn: () => apiClient.getConversationHistory(conversationId, limit),
+    enabled: !!conversationId,
+    staleTime: 30000, // 30 seconds
+  })
+}
+
 export function useFlaggedConversations() {
   return useQuery({
     queryKey: ['flagged-conversations'],
@@ -42,26 +69,131 @@ export function useConversationAnalytics(dateFrom?: Date, dateTo?: Date) {
   })
 }
 
-export function useUpdateConversationStatus() {
+export function useCreateConversation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'active' | 'resolved' | 'escalated' }) =>
-      apiClient.updateConversationStatus(id, status),
+    mutationFn: (conversationData: any) => apiClient.createConversation(conversationData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      toast.success('Conversa criada com sucesso!')
+    },
+    onError: (error: any) => {
+      console.error('Erro ao criar conversa:', error)
+      const message = apiClient.getErrorMessage(error)
+      toast.error(`Erro ao criar conversa: ${message}`)
+    },
+  })
+}
+
+export function useUpdateConversation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
+      apiClient.updateConversation(id, updates),
+    onSuccess: (updatedConversation, { id }) => {
+      // Update the conversation in cache
+      queryClient.setQueryData(['conversation', id], updatedConversation)
+      
+      // Invalidate conversations list to refresh
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['conversations-needing-attention'] })
+      
+      toast.success('Conversa atualizada com sucesso')
+    },
+    onError: (error: any) => {
+      console.error('Erro ao atualizar conversa:', error)
+      const message = apiClient.getErrorMessage(error)
+      toast.error(`Erro ao atualizar conversa: ${message}`)
+    },
+  })
+}
+
+export function useResolveConversation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => apiClient.resolveConversation(id),
     onSuccess: (updatedConversation) => {
       // Update the conversation in cache
       queryClient.setQueryData(['conversation', updatedConversation.id], updatedConversation)
       
       // Invalidate conversations list to refresh
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
-      queryClient.invalidateQueries({ queryKey: ['flagged-conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['conversations-needing-attention'] })
       queryClient.invalidateQueries({ queryKey: ['conversation-analytics'] })
       
-      toast.success('Status da conversa atualizado com sucesso')
+      toast.success('Conversa resolvida com sucesso')
     },
-    onError: (error) => {
-      console.error('Erro ao atualizar status da conversa:', error)
-      toast.error('Erro ao atualizar status da conversa')
+    onError: (error: any) => {
+      console.error('Erro ao resolver conversa:', error)
+      const message = apiClient.getErrorMessage(error)
+      toast.error(`Erro ao resolver conversa: ${message}`)
+    },
+  })
+}
+
+export function useEscalateConversation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => apiClient.escalateConversation(id),
+    onSuccess: (updatedConversation) => {
+      // Update the conversation in cache
+      queryClient.setQueryData(['conversation', updatedConversation.id], updatedConversation)
+      
+      // Invalidate conversations list to refresh
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['conversations-needing-attention'] })
+      queryClient.invalidateQueries({ queryKey: ['flagged-conversations'] })
+      
+      toast.success('Conversa escalada para revisão manual')
+    },
+    onError: (error: any) => {
+      console.error('Erro ao escalar conversa:', error)
+      const message = apiClient.getErrorMessage(error)
+      toast.error(`Erro ao escalar conversa: ${message}`)
+    },
+  })
+}
+
+export function useAddMessage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ conversationId, messageData }: { conversationId: string; messageData: any }) =>
+      apiClient.addMessage(conversationId, messageData),
+    onSuccess: (_, { conversationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
+      queryClient.invalidateQueries({ queryKey: ['conversation-history', conversationId] })
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      
+      toast.success('Mensagem adicionada com sucesso')
+    },
+    onError: (error: any) => {
+      console.error('Erro ao adicionar mensagem:', error)
+      const message = apiClient.getErrorMessage(error)
+      toast.error(`Erro ao adicionar mensagem: ${message}`)
+    },
+  })
+}
+
+// Legacy method for backward compatibility
+export function useUpdateConversationStatus() {
+  const resolveConversation = useResolveConversation()
+  const escalateConversation = useEscalateConversation()
+  const updateConversation = useUpdateConversation()
+
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'active' | 'resolved' | 'escalated' }) => {
+      if (status === 'resolved') {
+        return resolveConversation.mutateAsync(id)
+      } else if (status === 'escalated') {
+        return escalateConversation.mutateAsync(id)
+      } else {
+        return updateConversation.mutateAsync({ id, updates: { status } })
+      }
     },
   })
 }
