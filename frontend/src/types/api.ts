@@ -119,3 +119,16 @@ export interface BusinessHours {
     [key: string]: { start: string; end: string; active: boolean }
   }
 }
+
+export interface SpecificBusinessHours {
+  timezone: string
+  schedule: {
+    monday: { start: string; end: string; active: boolean }
+    tuesday: { start: string; end: string; active: boolean }
+    wednesday: { start: string; end: string; active: boolean }
+    thursday: { start: string; end: string; active: boolean }
+    friday: { start: string; end: string; active: boolean }
+    saturday: { start: string; end: string; active: boolean }
+    sunday: { start: string; end: string; active: boolean }
+  }
+}
