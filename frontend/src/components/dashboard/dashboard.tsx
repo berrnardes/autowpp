@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { MetricsCards } from "./metrics-cards"
 import { RecentInteractions } from "./recent-interactions"
 import type { ConversationFilters } from "@/types/api"
@@ -102,9 +103,11 @@ export function Dashboard() {
               <CardTitle className="text-lg">Ações Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Ver Todas as Conversas
+              <Button className="w-full justify-start" variant="outline" asChild>
+                <Link href="/conversations">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Ver Todas as Conversas
+                </Link>
               </Button>
               <Button className="w-full justify-start" variant="outline">
                 <Settings className="h-4 w-4 mr-2" />

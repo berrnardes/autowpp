@@ -29,7 +29,7 @@ const navigation = [
   },
   {
     name: 'Produtos',
-    href: '/products',
+    href: '/produtos',
     icon: Package,
   },
   {

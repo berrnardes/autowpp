@@ -11,7 +11,11 @@ import type {
   UpdateProductDto,
   ProductFilters,
   ConversationExample,
-  AIConfiguration
+  AIConfiguration,
+  Conversation,
+  ConversationAnalytics,
+  TakeoverRequest,
+  ResponseOverride
 } from '@/types/api'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
@@ -174,6 +178,82 @@ class ApiClient {
 
   async updateAIConfiguration(updates: Partial<Omit<AIConfiguration, 'id' | 'createdAt' | 'updatedAt'>>): Promise<AIConfiguration> {
     const response = await this.client.put<AIConfiguration>('/ai/configuration', updates)
+    return response.data
+  }
+
+  // Conversation Management API methods
+  async getConversations(filters?: ConversationFilters): Promise<Conversation[]> {
+    const params = new URLSearchParams()
+    
+    if (filters) {
+      if (filters.status) params.append('status', filters.status)
+      if (filters.search) params.append('search', filters.search)
+      if (filters.customerPhone) params.append('customerPhone', filters.customerPhone)
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom.toISOString())
+      if (filters.dateTo) params.append('dateTo', filters.dateTo.toISOString())
+      if (filters.minConfidence) params.append('minConfidence', filters.minConfidence.toString())
+      if (filters.maxConfidence) params.append('maxConfidence', filters.maxConfidence.toString())
+    }
+
+    const response = await this.client.get<Conversation[]>(`/conversations?${params}`)
+    return response.data
+  }
+
+  async getConversation(id: string): Promise<Conversation> {
+    const response = await this.client.get<Conversation>(`/conversations/${id}`)
+    return response.data
+  }
+
+  async updateConversationStatus(id: string, status: 'active' | 'resolved' | 'escalated'): Promise<Conversation> {
+    const response = await this.client.put<Conversation>(`/conversations/${id}/status`, { status })
+    return response.data
+  }
+
+  async getFlaggedConversations(): Promise<Conversation[]> {
+    const response = await this.client.get<Conversation[]>('/conversations/flagged')
+    return response.data
+  }
+
+  async flagMessage(messageId: string, reason: string): Promise<void> {
+    await this.client.post(`/conversations/messages/${messageId}/flag`, { reason })
+  }
+
+  async unflagMessage(messageId: string): Promise<void> {
+    await this.client.delete(`/conversations/messages/${messageId}/flag`)
+  }
+
+  async requestTakeover(request: TakeoverRequest): Promise<void> {
+    await this.client.post('/conversations/takeover', request)
+  }
+
+  async overrideResponse(override: ResponseOverride): Promise<void> {
+    await this.client.post('/conversations/override-response', override)
+  }
+
+  async getConversationAnalytics(dateFrom?: Date, dateTo?: Date): Promise<ConversationAnalytics> {
+    const params = new URLSearchParams()
+    if (dateFrom) params.append('dateFrom', dateFrom.toISOString())
+    if (dateTo) params.append('dateTo', dateTo.toISOString())
+
+    const response = await this.client.get<ConversationAnalytics>(`/conversations/analytics?${params}`)
+    return response.data
+  }
+
+  async exportConversations(filters?: ConversationFilters, format: 'csv' | 'json' = 'csv'): Promise<Blob> {
+    const params = new URLSearchParams()
+    params.append('format', format)
+    
+    if (filters) {
+      if (filters.status) params.append('status', filters.status)
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom.toISOString())
+      if (filters.dateTo) params.append('dateTo', filters.dateTo.toISOString())
+      if (filters.minConfidence) params.append('minConfidence', filters.minConfidence.toString())
+      if (filters.maxConfidence) params.append('maxConfidence', filters.maxConfidence.toString())
+    }
+
+    const response = await this.client.get(`/conversations/export?${params}`, {
+      responseType: 'blob'
+    })
     return response.data
   }
 }

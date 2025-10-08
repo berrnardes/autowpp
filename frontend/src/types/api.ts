@@ -27,6 +27,76 @@ export interface ConversationFilters {
   dateTo?: Date
   minConfidence?: number
   maxConfidence?: number
+  search?: string
+  customerPhone?: string
+}
+
+// Conversation management types
+export interface Conversation {
+  id: string
+  customerPhone: string
+  customerName?: string
+  status: 'active' | 'resolved' | 'escalated'
+  createdAt: Date
+  updatedAt: Date
+  messages: Message[]
+  totalMessages: number
+  aiMessages: number
+  humanMessages: number
+  averageConfidence?: number
+  lastActivity: Date
+}
+
+export interface Message {
+  id: string
+  conversationId: string
+  content: string
+  type: 'incoming' | 'outgoing'
+  isAI: boolean
+  confidence?: number
+  timestamp: Date
+  metadata?: Record<string, unknown>
+  flagged?: boolean
+  reviewStatus?: 'pending' | 'approved' | 'rejected'
+}
+
+export interface ConversationAnalytics {
+  totalConversations: number
+  activeConversations: number
+  resolvedConversations: number
+  escalatedConversations: number
+  averageResponseTime: number
+  aiAccuracy: number
+  customerSatisfaction?: number
+  responseTimeDistribution: {
+    under5s: number
+    under30s: number
+    under1m: number
+    over1m: number
+  }
+  confidenceDistribution: {
+    high: number // > 0.8
+    medium: number // 0.5 - 0.8
+    low: number // < 0.5
+  }
+  dailyStats: {
+    date: string
+    conversations: number
+    messages: number
+    averageConfidence: number
+  }[]
+}
+
+export interface TakeoverRequest {
+  conversationId: string
+  reason: string
+  priority: 'low' | 'medium' | 'high'
+}
+
+export interface ResponseOverride {
+  messageId: string
+  newContent: string
+  reason: string
 }
 
 // WhatsApp types
