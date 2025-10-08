@@ -16,6 +16,7 @@ import {
 } from '../interfaces/ai.interface';
 import { ConversationGoalType } from '../../database/schema';
 import { ConversationGoalService } from './conversation-goal.service';
+import { AIProductIntegrationService } from './ai-product-integration.service';
 
 @Injectable()
 export class AIService implements OnModuleInit {
@@ -25,10 +26,13 @@ export class AIService implements OnModuleInit {
   private config: AIServiceConfig;
   private currentGoal: ConversationGoalType = 'helpful';
   private trainingExamples: ConversationExample[] = [];
+  private productKnowledge: ProductInfo[] = [];
+  private productEmbeddings: Map<string, number[]> = new Map();
 
   constructor(
     private configService: ConfigService,
-    private conversationGoalService: ConversationGoalService
+    private conversationGoalService: ConversationGoalService,
+    private aiProductIntegrationService: AIProductIntegrationService
   ) {}
 
   async onModuleInit() {
@@ -126,8 +130,30 @@ Responda à mensagem do cliente seguindo as diretrizes do seu objetivo atual, os
       // Prepare conversation history for LangChain
       const conversationHistory = this.formatConversationHistory(context.conversationHistory);
       
-      // Prepare products information using goal-specific formatting
-      const productsInfo = this.formatProductsInfoForGoal(context.products, context.conversationGoal);
+      // Get fresh product data from database if context is empty or outdated
+      let currentProducts = context.products;
+      if (!currentProducts || currentProducts.length === 0) {
+        currentProducts = await this.aiProductIntegrationService.getAllProductsForAI();
+      }
+
+      // Update product knowledge
+      if (currentProducts && currentProducts.length > 0) {
+        await this.updateProductKnowledge(currentProducts);
+      }
+
+      // Check for specific product mentions in the message
+      const mentionedProducts = this.aiProductIntegrationService.extractProductMentions(
+        message.content, 
+        currentProducts
+      );
+
+      // Prepare products information with recommendations and mentions
+      const productsInfo = await this.formatProductsInfoWithRecommendations(
+        currentProducts, 
+        message.content, 
+        context.conversationGoal,
+        mentionedProducts
+      );
 
       // Generate AI response
       const response = await this.conversationChain.invoke({
@@ -230,9 +256,14 @@ Responda à mensagem do cliente seguindo as diretrizes do seu objetivo atual, os
     try {
       this.logger.log(`Updating product knowledge with ${products.length} products`);
       
-      // In a production system, you might want to update a vector database
-      // or retrain embeddings for product information
-      // For now, we'll just log the update
+      // Store products for AI context and recommendations
+      this.productKnowledge = products;
+      
+      // Create product embeddings for better search and recommendations
+      this.productEmbeddings = await this.createProductEmbeddings(products);
+      
+      // Update conversation chain to include new product knowledge
+      await this.createConversationChain(this.currentGoal);
       
       this.logger.debug('Product knowledge updated successfully');
     } catch (error) {
@@ -540,5 +571,319 @@ ${examplesText}
 
 IMPORTANTE: Use estes exemplos como guia para o tom, estilo e abordagem, mas adapte suas respostas ao contexto específico de cada conversa.
 `;
+  }
+
+  // Product recommendation and search methods
+  async recommendProducts(
+    customerMessage: string, 
+    conversationGoal: ConversationGoalType,
+    maxRecommendations: number = 3
+  ): Promise<ProductInfo[]> {
+    try {
+      if (!this.productKnowledge || this.productKnowledge.length === 0) {
+        return [];
+      }
+
+      // Filter available products
+      const availableProducts = this.productKnowledge.filter(p => p.inStock);
+      
+      if (availableProducts.length === 0) {
+        return [];
+      }
+
+      // Score products based on message content and conversation goal
+      const scoredProducts = availableProducts.map(product => ({
+        product,
+        score: this.calculateProductRelevanceScore(product, customerMessage, conversationGoal)
+      }));
+
+      // Sort by score and return top recommendations
+      return scoredProducts
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxRecommendations)
+        .map(item => item.product);
+
+    } catch (error) {
+      this.logger.error('Error generating product recommendations', error);
+      return [];
+    }
+  }
+
+  async searchProducts(query: string): Promise<ProductInfo[]> {
+    try {
+      if (!this.productKnowledge || this.productKnowledge.length === 0) {
+        return [];
+      }
+
+      const queryLower = query.toLowerCase().trim();
+      
+      if (!queryLower) {
+        return this.productKnowledge.filter(p => p.inStock).slice(0, 5);
+      }
+
+      // Search in product name, description, and category
+      const matchingProducts = this.productKnowledge.filter(product => {
+        if (!product.inStock) return false;
+        
+        const nameMatch = product.name.toLowerCase().includes(queryLower);
+        const descriptionMatch = product.description?.toLowerCase().includes(queryLower) || false;
+        const categoryMatch = product.category?.toLowerCase().includes(queryLower) || false;
+        
+        return nameMatch || descriptionMatch || categoryMatch;
+      });
+
+      // Score and sort results
+      const scoredResults = matchingProducts.map(product => ({
+        product,
+        score: this.calculateSearchScore(product, queryLower)
+      }));
+
+      return scoredResults
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)
+        .map(item => item.product);
+
+    } catch (error) {
+      this.logger.error('Error searching products', error);
+      return [];
+    }
+  }
+
+  getProductById(productId: string): ProductInfo | null {
+    return this.productKnowledge.find(p => p.id === productId) || null;
+  }
+
+  getProductsByCategory(category: string): ProductInfo[] {
+    return this.productKnowledge.filter(p => 
+      p.inStock && 
+      p.category?.toLowerCase() === category.toLowerCase()
+    );
+  }
+
+  getProductsInPriceRange(minPrice: number, maxPrice: number): ProductInfo[] {
+    return this.productKnowledge.filter(p => 
+      p.inStock && 
+      p.price >= minPrice && 
+      p.price <= maxPrice
+    );
+  }
+
+  private calculateProductRelevanceScore(
+    product: ProductInfo, 
+    customerMessage: string, 
+    conversationGoal: ConversationGoalType
+  ): number {
+    let score = 0;
+    const messageLower = customerMessage.toLowerCase();
+    
+    // Base relevance from text matching
+    if (product.name.toLowerCase().includes(messageLower)) {
+      score += 3;
+    }
+    
+    if (product.description?.toLowerCase().includes(messageLower)) {
+      score += 2;
+    }
+    
+    if (product.category?.toLowerCase().includes(messageLower)) {
+      score += 1.5;
+    }
+
+    // Goal-specific scoring
+    switch (conversationGoal) {
+      case 'deal_closer':
+        // Prioritize higher-priced items for deal closing
+        score += (product.price / 1000) * 0.5;
+        break;
+      case 'support_agent':
+        // Prioritize products mentioned in support context
+        const supportKeywords = ['problema', 'defeito', 'garantia', 'troca', 'devolução'];
+        if (supportKeywords.some(keyword => messageLower.includes(keyword))) {
+          score += 2;
+        }
+        break;
+      case 'lead_generator':
+        // Prioritize popular categories or entry-level products
+        if (product.price < 100) {
+          score += 1;
+        }
+        break;
+    }
+
+    // Keyword-based scoring
+    const productKeywords = this.extractProductKeywords(product);
+    const messageWords = messageLower.split(/\s+/);
+    
+    for (const word of messageWords) {
+      if (productKeywords.includes(word)) {
+        score += 0.5;
+      }
+    }
+
+    return score;
+  }
+
+  private calculateSearchScore(product: ProductInfo, query: string): number {
+    let score = 0;
+    
+    // Exact name match gets highest score
+    if (product.name.toLowerCase() === query) {
+      score += 10;
+    } else if (product.name.toLowerCase().includes(query)) {
+      score += 5;
+    }
+    
+    // Description matches
+    if (product.description?.toLowerCase().includes(query)) {
+      score += 3;
+    }
+    
+    // Category matches
+    if (product.category?.toLowerCase().includes(query)) {
+      score += 2;
+    }
+    
+    // Boost score for products with more complete information
+    if (product.description && product.description.length > 50) {
+      score += 0.5;
+    }
+    
+    if (product.category) {
+      score += 0.3;
+    }
+    
+    return score;
+  }
+
+  private extractProductKeywords(product: ProductInfo): string[] {
+    const keywords: string[] = [];
+    
+    // Add name words
+    keywords.push(...product.name.toLowerCase().split(/\s+/));
+    
+    // Add description words (first 10 words)
+    if (product.description) {
+      keywords.push(...product.description.toLowerCase().split(/\s+/).slice(0, 10));
+    }
+    
+    // Add category
+    if (product.category) {
+      keywords.push(product.category.toLowerCase());
+    }
+    
+    return keywords.filter(word => word.length > 2); // Filter out short words
+  }
+
+  private async createProductEmbeddings(products: ProductInfo[]): Promise<Map<string, number[]>> {
+    // Simplified embedding creation - in production, you'd use proper embeddings
+    const embeddings = new Map<string, number[]>();
+    
+    for (const product of products) {
+      // Create a simple hash-based embedding for demonstration
+      const text = `${product.name} ${product.description || ''} ${product.category || ''}`;
+      const embedding = this.createSimpleEmbedding(text);
+      embeddings.set(product.id, embedding);
+    }
+    
+    return embeddings;
+  }
+
+  private createSimpleEmbedding(text: string): number[] {
+    // Simplified embedding - in production, use proper embedding models
+    const words = text.toLowerCase().split(/\s+/);
+    const embedding = new Array(50).fill(0);
+    
+    for (let i = 0; i < words.length && i < 50; i++) {
+      const word = words[i];
+      // Simple hash to number conversion
+      let hash = 0;
+      for (let j = 0; j < word.length; j++) {
+        hash = ((hash << 5) - hash + word.charCodeAt(j)) & 0xffffffff;
+      }
+      embedding[i % 50] += Math.abs(hash) / 1000000000;
+    }
+    
+    return embedding;
+  }
+
+  // Enhanced product formatting with recommendations
+  private async formatProductsInfoWithRecommendations(
+    products: ProductInfo[], 
+    customerMessage: string,
+    goal: ConversationGoalType,
+    mentionedProducts?: ProductInfo[]
+  ): string {
+    if (!products || products.length === 0) {
+      return 'Nenhum produto disponível no momento.';
+    }
+
+    // Get recommendations based on customer message
+    const recommendations = await this.recommendProducts(customerMessage, goal, 3);
+    
+    let formattedInfo = '';
+    
+    // Handle mentioned products first
+    if (mentionedProducts && mentionedProducts.length > 0) {
+      formattedInfo += 'PRODUTOS MENCIONADOS:\n';
+      formattedInfo += mentionedProducts
+        .map(product => this.formatSingleProduct(product, goal))
+        .join('\n');
+      
+      // Add comparison if multiple products mentioned
+      if (mentionedProducts.length > 1) {
+        formattedInfo += '\n\n' + this.aiProductIntegrationService.generateProductComparisonText(mentionedProducts);
+      }
+      
+      formattedInfo += '\n\n';
+    }
+    
+    if (recommendations.length > 0) {
+      formattedInfo += 'PRODUTOS RECOMENDADOS:\n';
+      formattedInfo += recommendations
+        .map(product => this.formatSingleProduct(product, goal))
+        .join('\n');
+      
+      // Add other available products if there are more
+      const excludeIds = [
+        ...(mentionedProducts?.map(p => p.id) || []),
+        ...recommendations.map(r => r.id)
+      ];
+      
+      const otherProducts = products
+        .filter(p => p.inStock && !excludeIds.includes(p.id))
+        .slice(0, 3);
+      
+      if (otherProducts.length > 0) {
+        formattedInfo += '\n\nOUTROS PRODUTOS DISPONÍVEIS:\n';
+        formattedInfo += otherProducts
+          .map(product => this.formatSingleProduct(product, goal))
+          .join('\n');
+      }
+    } else if (!mentionedProducts || mentionedProducts.length === 0) {
+      // Fallback to regular formatting if no recommendations or mentions
+      formattedInfo = this.formatProductsInfoForGoal(products, goal);
+    }
+    
+    // Add product summary for context
+    if (products.length > 5) {
+      formattedInfo += '\n\n' + this.aiProductIntegrationService.generateProductSummaryForGoal(products, goal);
+    }
+    
+    return formattedInfo;
+  }
+
+  private formatSingleProduct(product: ProductInfo, goal: ConversationGoalType): string {
+    const baseInfo = `${product.name}: ${product.description || 'Sem descrição'} - R$ ${product.price} ${product.currency}`;
+    
+    switch (goal) {
+      case 'deal_closer':
+        return `🔥 ${baseInfo} - OFERTA ESPECIAL! 💰`;
+      case 'support_agent':
+        return `${baseInfo} (ID: ${product.id})`;
+      case 'lead_generator':
+        return `✨ ${baseInfo} - Quer saber mais?`;
+      default:
+        return baseInfo;
+    }
   }
 }

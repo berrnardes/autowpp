@@ -67,3 +67,33 @@ export interface AIServiceConfig {
   confidenceThreshold: number;
   fallbackMessage: string;
 }
+
+export interface ProductRecommendation {
+  product: ProductInfo;
+  score: number;
+  reason: string;
+}
+
+export interface ProductSearchOptions {
+  query?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
+}
+
+export interface AIProductIntegration {
+  recommendProducts(
+    customerMessage: string, 
+    conversationGoal: ConversationGoalType,
+    maxRecommendations?: number
+  ): Promise<ProductInfo[]>;
+  
+  searchProducts(query: string): Promise<ProductInfo[]>;
+  
+  getProductById(productId: string): ProductInfo | null;
+  
+  getProductsByCategory(category: string): ProductInfo[];
+  
+  getProductsInPriceRange(minPrice: number, maxPrice: number): ProductInfo[];
+}

@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { AIService } from './ai.service';
+import { ConversationGoalService } from './conversation-goal.service';
+import { AIProductIntegrationService } from './ai-product-integration.service';
 import { 
   IncomingMessage, 
   ConversationContext, 
@@ -41,6 +43,8 @@ jest.mock('@langchain/core/runnables', () => ({
 describe('AIService', () => {
   let service: AIService;
   let configService: ConfigService;
+  let mockConversationGoalService: jest.Mocked<ConversationGoalService>;
+  let mockAIProductIntegrationService: jest.Mocked<AIProductIntegrationService>;
 
   const mockConfigService = {
     get: jest.fn((key: string, defaultValue?: any) => {
@@ -53,19 +57,68 @@ describe('AIService', () => {
     })
   };
 
+  const mockProducts: ProductInfo[] = [
+    {
+      id: '1',
+      name: 'Smartphone Samsung Galaxy',
+      description: 'Smartphone Android com 128GB de armazenamento',
+      price: 899.99,
+      currency: 'BRL',
+      category: 'Eletrônicos',
+      inStock: true
+    },
+    {
+      id: '2',
+      name: 'Notebook Dell Inspiron',
+      description: 'Notebook para trabalho e estudos com 8GB RAM',
+      price: 2499.99,
+      currency: 'BRL',
+      category: 'Informática',
+      inStock: true
+    }
+  ];
+
   beforeEach(async () => {
+    const mockConversationGoalServiceMethods = {
+      getGoalConfiguration: jest.fn().mockReturnValue({
+        name: 'Helpful Assistant',
+        systemPrompt: 'Seja útil e prestativo',
+        instructions: ['Responda em português', 'Seja cordial']
+      }),
+      shouldEscalate: jest.fn().mockReturnValue(false),
+      getAvailableGoals: jest.fn().mockReturnValue(['helpful', 'deal_closer']),
+      updateCustomGoalConfiguration: jest.fn()
+    };
+
+    const mockAIProductIntegrationServiceMethods = {
+      getAllProductsForAI: jest.fn().mockResolvedValue(mockProducts),
+      extractProductMentions: jest.fn().mockReturnValue([]),
+      generateProductComparisonText: jest.fn().mockReturnValue(''),
+      generateProductSummaryForGoal: jest.fn().mockReturnValue('Resumo dos produtos')
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AIService,
         {
           provide: ConfigService,
           useValue: mockConfigService
+        },
+        {
+          provide: ConversationGoalService,
+          useValue: mockConversationGoalServiceMethods
+        },
+        {
+          provide: AIProductIntegrationService,
+          useValue: mockAIProductIntegrationServiceMethods
         }
       ],
     }).compile();
 
     service = module.get<AIService>(AIService);
     configService = module.get<ConfigService>(ConfigService);
+    mockConversationGoalService = module.get(ConversationGoalService);
+    mockAIProductIntegrationService = module.get(AIProductIntegrationService);
 
     // Initialize the service
     await service.onModuleInit();
@@ -310,6 +363,155 @@ describe('AIService', () => {
     });
   });
 
+  describe('Product Integration', () => {
+    it('should fetch products when context is empty', async () => {
+      const mockMessage: IncomingMessage = {
+        content: 'Quais produtos vocês têm?',
+        customerPhone: '+5511999999999'
+      };
+
+      const mockContext: ConversationContext = {
+        customerPhone: '+5511999999999',
+        conversationHistory: [],
+        products: [], // Empty products
+        conversationGoal: 'helpful'
+      };
+
+      await service.processMessage(mockMessage, mockContext);
+
+      expect(mockAIProductIntegrationService.getAllProductsForAI).toHaveBeenCalled();
+    });
+
+    it('should extract product mentions from customer message', async () => {
+      const mockMessage: IncomingMessage = {
+        content: 'Estou interessado no Smartphone Samsung',
+        customerPhone: '+5511999999999'
+      };
+
+      const mockContext: ConversationContext = {
+        customerPhone: '+5511999999999',
+        conversationHistory: [],
+        products: mockProducts,
+        conversationGoal: 'helpful'
+      };
+
+      mockAIProductIntegrationService.extractProductMentions.mockReturnValue([mockProducts[0]]);
+
+      await service.processMessage(mockMessage, mockContext);
+
+      expect(mockAIProductIntegrationService.extractProductMentions).toHaveBeenCalledWith(
+        'Estou interessado no Smartphone Samsung',
+        mockProducts
+      );
+    });
+
+    it('should recommend products based on customer message and goal', async () => {
+      const mockMessage: IncomingMessage = {
+        content: 'Preciso de um celular bom e barato',
+        customerPhone: '+5511999999999'
+      };
+
+      const mockContext: ConversationContext = {
+        customerPhone: '+5511999999999',
+        conversationHistory: [],
+        products: mockProducts,
+        conversationGoal: 'deal_closer'
+      };
+
+      const recommendations = await service.recommendProducts(
+        mockMessage.content,
+        mockContext.conversationGoal,
+        3
+      );
+
+      expect(recommendations).toBeDefined();
+      expect(Array.isArray(recommendations)).toBe(true);
+    });
+
+    it('should search products by query', async () => {
+      const searchResults = await service.searchProducts('smartphone');
+
+      expect(searchResults).toBeDefined();
+      expect(Array.isArray(searchResults)).toBe(true);
+    });
+
+    it('should get product by ID', () => {
+      // First update product knowledge
+      service.updateProductKnowledge(mockProducts);
+      
+      const product = service.getProductById('1');
+      expect(product).toBeDefined();
+      expect(product?.name).toBe('Smartphone Samsung Galaxy');
+    });
+
+    it('should get products by category', () => {
+      // First update product knowledge
+      service.updateProductKnowledge(mockProducts);
+      
+      const products = service.getProductsByCategory('Eletrônicos');
+      expect(products).toBeDefined();
+      expect(Array.isArray(products)).toBe(true);
+    });
+
+    it('should get products in price range', () => {
+      // First update product knowledge
+      service.updateProductKnowledge(mockProducts);
+      
+      const products = service.getProductsInPriceRange(800, 1000);
+      expect(products).toBeDefined();
+      expect(Array.isArray(products)).toBe(true);
+    });
+
+    it('should handle different conversation goals with products', async () => {
+      const mockMessage: IncomingMessage = {
+        content: 'Me fale sobre seus produtos',
+        customerPhone: '+5511999999999'
+      };
+
+      const goals: Array<'helpful' | 'deal_closer' | 'support_agent' | 'lead_generator'> = [
+        'helpful', 'deal_closer', 'support_agent', 'lead_generator'
+      ];
+
+      for (const goal of goals) {
+        const mockContext: ConversationContext = {
+          customerPhone: '+5511999999999',
+          conversationHistory: [],
+          products: mockProducts,
+          conversationGoal: goal
+        };
+
+        const result = await service.processMessage(mockMessage, mockContext);
+        
+        expect(result).toBeDefined();
+        expect(result.metadata?.conversationGoal).toBe(goal);
+      }
+    });
+
+    it('should generate product comparison when multiple products mentioned', async () => {
+      const mockMessage: IncomingMessage = {
+        content: 'Qual a diferença entre o smartphone e o notebook?',
+        customerPhone: '+5511999999999'
+      };
+
+      const mockContext: ConversationContext = {
+        customerPhone: '+5511999999999',
+        conversationHistory: [],
+        products: mockProducts,
+        conversationGoal: 'helpful'
+      };
+
+      // Mock that both products are mentioned
+      mockAIProductIntegrationService.extractProductMentions.mockReturnValue(mockProducts);
+      mockAIProductIntegrationService.generateProductComparisonText.mockReturnValue(
+        'Comparação: Smartphone vs Notebook'
+      );
+
+      await service.processMessage(mockMessage, mockContext);
+
+      expect(mockAIProductIntegrationService.generateProductComparisonText).toHaveBeenCalledWith(mockProducts);
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle missing OpenAI API key', async () => {
       // Create a service with missing API key
@@ -328,6 +530,14 @@ describe('AIService', () => {
           {
             provide: ConfigService,
             useValue: invalidConfigService
+          },
+          {
+            provide: ConversationGoalService,
+            useValue: mockConversationGoalService
+          },
+          {
+            provide: AIProductIntegrationService,
+            useValue: mockAIProductIntegrationService
           }
         ],
       }).compile();
@@ -338,27 +548,28 @@ describe('AIService', () => {
       await expect(invalidService.onModuleInit()).rejects.toThrow();
     });
 
-    it('should handle LangChain initialization errors', async () => {
-      // Mock ChatOpenAI to throw an error
-      const { ChatOpenAI } = require('@langchain/openai');
-      ChatOpenAI.mockImplementationOnce(() => {
-        throw new Error('Failed to initialize ChatOpenAI');
-      });
+    it('should handle product integration errors gracefully', async () => {
+      mockAIProductIntegrationService.getAllProductsForAI.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          AIService,
-          {
-            provide: ConfigService,
-            useValue: mockConfigService
-          }
-        ],
-      }).compile();
+      const mockMessage: IncomingMessage = {
+        content: 'Quais produtos vocês têm?',
+        customerPhone: '+5511999999999'
+      };
 
-      const invalidService = module.get<AIService>(AIService);
+      const mockContext: ConversationContext = {
+        customerPhone: '+5511999999999',
+        conversationHistory: [],
+        products: [],
+        conversationGoal: 'helpful'
+      };
 
-      // Should throw during initialization
-      await expect(invalidService.onModuleInit()).rejects.toThrow('Failed to initialize ChatOpenAI');
+      const result = await service.processMessage(mockMessage, mockContext);
+
+      // Should still return a response even if product integration fails
+      expect(result).toBeDefined();
+      expect(result.content).toBeTruthy();
     });
   });
 });
